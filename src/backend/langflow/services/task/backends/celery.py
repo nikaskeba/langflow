@@ -5,12 +5,12 @@ from langflow.worker import celery_app
 
 
 class CeleryBackend(TaskBackend):
+    name = "celery"
+
     def __init__(self):
         self.celery_app = celery_app
 
-    def launch_task(
-        self, task_func: Callable[..., Any], *args: Any, **kwargs: Any
-    ) -> tuple[str, AsyncResult]:
+    def launch_task(self, task_func: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[str, AsyncResult]:
         # I need to type the delay method to make it easier
         from celery import Task  # type: ignore
 

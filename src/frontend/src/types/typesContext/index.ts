@@ -20,6 +20,7 @@ export type typesContextType = {
   setFetchError: (newState: boolean) => void;
   setFilterEdge: (newState) => void;
   getFilterEdge: any[];
+  deleteEdge: (idx: string | Array<string>) => void;
 };
 
 export type alertContextType = {
@@ -43,6 +44,8 @@ export type alertContextType = {
   removeFromNotificationList: (index: string) => void;
   loading: boolean;
   setLoading: (newState: boolean) => void;
+  modalContextOpen: boolean | null;
+  setModalContextOpen: (newState: boolean) => void;
 };
 
 export type darkContextType = {

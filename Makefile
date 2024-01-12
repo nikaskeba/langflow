@@ -18,18 +18,21 @@ coverage:
 		--cov-report xml \
 		--cov-report term-missing:skip-covered
 
+# allow passing arguments to pytest
 tests:
 	@make install_backend
-	poetry run pytest tests
+
+	poetry run pytest tests --instafail $(args)
+# Use like:
 
 format:
-	poetry run black .
 	poetry run ruff . --fix
+	poetry run ruff format .
 	cd src/frontend && npm run format
 
 lint:
+	make install_backend
 	poetry run mypy src/backend/langflow
-	poetry run black . --check
 	poetry run ruff . --fix
 
 install_frontend:
@@ -39,6 +42,7 @@ install_frontendc:
 	cd src/frontend && rm -rf node_modules package-lock.json && npm install
 
 run_frontend:
+	@-kill -9 `lsof -t -i:3000`
 	cd src/frontend && npm start
 
 run_cli:
@@ -65,7 +69,14 @@ install_backend:
 
 backend:
 	make install_backend
-	poetry run uvicorn --factory src.backend.langflow.main:create_app --port 7860 --reload --log-level debug
+	@-kill -9 `lsof -t -i:7860`
+ifeq ($(login),1)
+	@echo "Running backend without autologin";
+	poetry run langflow run --backend-only --port 7860 --host 0.0.0.0 --no-open-browser --env-file .env
+else
+	@echo "Running backend with autologin";
+	LANGFLOW_AUTO_LOGIN=True poetry run langflow run --backend-only --port 7860 --host 0.0.0.0 --no-open-browser --env-file .env
+endif
 
 build_and_run:
 	echo 'Removing dist folder'

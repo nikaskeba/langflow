@@ -24,9 +24,9 @@ import {
 import { Textarea } from "../../components/ui/textarea";
 import { CHAT_FORM_DIALOG_SUBTITLE } from "../../constants/constants";
 import { AuthContext } from "../../contexts/authContext";
-import { TabsContext } from "../../contexts/tabsContext";
+import { FlowsContext } from "../../contexts/flowsContext";
 import { getBuildStatus } from "../../controllers/API";
-import { TabsState } from "../../types/tabs";
+import { FlowsState } from "../../types/tabs";
 import { validateNodes } from "../../utils/reactflowUtils";
 
 export default function FormModal({
@@ -38,7 +38,7 @@ export default function FormModal({
   setOpen: (open: boolean) => void;
   flow: FlowType;
 }): JSX.Element {
-  const { tabsState, setTabsState } = useContext(TabsContext);
+  const { tabsState, setTabsState } = useContext(FlowsContext);
   const [chatValue, setChatValue] = useState(() => {
     try {
       const { formKeysData } = tabsState[flow.id];
@@ -146,13 +146,14 @@ export default function FormModal({
             newChat[newChat.length - 1].message + str;
         }
       }
-      if (thought) {
+
+      if (thought && newChat[newChat.length - 1]?.thought) {
         newChat[newChat.length - 1].thought = thought;
       }
-      if (files) {
+      if (files && newChat[newChat.length - 1]?.files) {
         newChat[newChat.length - 1].files = files;
       }
-      if (prompt) {
+      if (prompt && newChat[newChat.length - 2]?.template) {
         newChat[newChat.length - 2].template = prompt;
       }
       return newChat;
@@ -198,6 +199,7 @@ export default function FormModal({
       window.location.protocol === "https:" || window.location.port === "443";
     const webSocketProtocol = isSecureProtocol ? "wss" : "ws";
     const host = isDevelopment ? "localhost:7860" : window.location.host;
+
     const chatEndpoint = `/api/v1/chat/${chatId}`;
 
     return `${
@@ -261,7 +263,11 @@ export default function FormModal({
     }
     if (data.type === "end") {
       if (data.message) {
-        updateLastMessage({ str: data.message, end: true });
+        updateLastMessage({
+          str: data.message,
+          end: true,
+          prompt: template.current,
+        });
       }
       if (data.intermediate_steps) {
         updateLastMessage({
@@ -276,19 +282,14 @@ export default function FormModal({
           files: data.files,
         });
       }
-      if (data.type === "prompt" && data.prompt) {
-        template.current = data.prompt;
-      }
-
       setLockChat(false);
       isStream = false;
     }
+    if (data.type == "prompt" && data.prompt) {
+      template.current = data.prompt;
+    }
     if (data.type === "stream" && isStream) {
-      if (data.prompt) {
-        updateLastMessage({ prompt: data.prompt });
-      } else {
-        updateLastMessage({ str: data.message });
-      }
+      updateLastMessage({ str: data.message });
     }
   }
 
@@ -394,7 +395,7 @@ export default function FormModal({
       const message = inputs;
       addChatHistory(message!, true, chatKey!, template.current);
       sendAll({
-        ...reactFlowInstance?.toObject()!,
+        ...flow.data!,
         inputs: inputs!,
         chatHistory,
         name: flow.name,
@@ -402,7 +403,7 @@ export default function FormModal({
         chatKey: chatKey!,
       });
       //@ts-ignore
-      setTabsState((old: TabsState) => {
+      setTabsState((old: FlowsState) => {
         if (!chatKey) return old;
         let newTabsState = _.cloneDeep(old);
         newTabsState[id.current].formKeysData.input_keys![chatKey] = "";
@@ -523,7 +524,7 @@ export default function FormModal({
                             }
                             onChange={(e) => {
                               //@ts-ignore
-                              setTabsState((old: TabsState) => {
+                              setTabsState((old: FlowsState) => {
                                 let newTabsState = _.cloneDeep(old);
                                 newTabsState[
                                   id.current
@@ -635,7 +636,7 @@ export default function FormModal({
                       setChatValue={(value) => {
                         setChatValue(value);
                         //@ts-ignore
-                        setTabsState((old: TabsState) => {
+                        setTabsState((old: FlowsState) => {
                           let newTabsState = _.cloneDeep(old);
                           newTabsState[id.current].formKeysData.input_keys![
                             chatKey!

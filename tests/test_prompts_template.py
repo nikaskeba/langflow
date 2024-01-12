@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
-from langflow.services.getters import get_settings_service
+
+from langflow.services.deps import get_settings_service
 
 
 def test_prompts_settings(client: TestClient, logged_in_headers):
@@ -21,7 +22,7 @@ def test_prompt_template(client: TestClient, logged_in_headers):
     template = prompt["template"]
     assert template["input_variables"] == {
         "required": True,
-        "dynamic": False,
+        "dynamic": True,
         "placeholder": "",
         "show": False,
         "multiline": False,
@@ -31,11 +32,12 @@ def test_prompt_template(client: TestClient, logged_in_headers):
         "list": True,
         "advanced": False,
         "info": "",
+        "fileTypes": [],
     }
 
     assert template["output_parser"] == {
         "required": False,
-        "dynamic": False,
+        "dynamic": True,
         "placeholder": "",
         "show": False,
         "multiline": False,
@@ -45,11 +47,12 @@ def test_prompt_template(client: TestClient, logged_in_headers):
         "list": False,
         "advanced": False,
         "info": "",
+        "fileTypes": [],
     }
 
     assert template["partial_variables"] == {
         "required": False,
-        "dynamic": False,
+        "dynamic": True,
         "placeholder": "",
         "show": False,
         "multiline": False,
@@ -59,11 +62,12 @@ def test_prompt_template(client: TestClient, logged_in_headers):
         "list": False,
         "advanced": False,
         "info": "",
+        "fileTypes": [],
     }
 
     assert template["template"] == {
         "required": True,
-        "dynamic": False,
+        "dynamic": True,
         "placeholder": "",
         "show": True,
         "multiline": True,
@@ -73,11 +77,12 @@ def test_prompt_template(client: TestClient, logged_in_headers):
         "list": False,
         "advanced": False,
         "info": "",
+        "fileTypes": [],
     }
 
     assert template["template_format"] == {
         "required": False,
-        "dynamic": False,
+        "dynamic": True,
         "placeholder": "",
         "show": False,
         "multiline": False,
@@ -88,19 +93,21 @@ def test_prompt_template(client: TestClient, logged_in_headers):
         "list": False,
         "advanced": False,
         "info": "",
+        "fileTypes": [],
     }
 
     assert template["validate_template"] == {
         "required": False,
-        "dynamic": False,
+        "dynamic": True,
         "placeholder": "",
         "show": False,
         "multiline": False,
-        "value": True,
+        "value": False,
         "password": False,
         "name": "validate_template",
         "type": "bool",
         "list": False,
         "advanced": False,
         "info": "",
+        "fileTypes": [],
     }

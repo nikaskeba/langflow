@@ -1,10 +1,11 @@
-from langflow.services.schema import ServiceType
 from typing import TYPE_CHECKING, Dict, List, Optional
+
+from langflow.services.schema import ServiceType
 from loguru import logger
 
 if TYPE_CHECKING:
-    from langflow.services.factory import ServiceFactory
     from langflow.services.base import Service
+    from langflow.services.factory import ServiceFactory
 
 
 class ServiceManager:
@@ -31,7 +32,7 @@ class ServiceManager:
         self.factories[service_name] = service_factory
         self.dependencies[service_name] = dependencies
 
-    def get(self, service_name: ServiceType):
+    def get(self, service_name: ServiceType) -> "Service":
         """
         Get (or create) a service by its name.
         """
@@ -53,15 +54,10 @@ class ServiceManager:
                 self._create_service(dependency)
 
         # Collect the dependent services
-        dependent_services = {
-            dep.value: self.services[dep]
-            for dep in self.dependencies.get(service_name, [])
-        }
+        dependent_services = {dep.value: self.services[dep] for dep in self.dependencies.get(service_name, [])}
 
         # Create the actual service
-        self.services[service_name] = self.factories[service_name].create(
-            **dependent_services
-        )
+        self.services[service_name] = self.factories[service_name].create(**dependent_services)
         self.services[service_name].set_ready()
 
     def _validate_service_creation(self, service_name: ServiceType):
@@ -69,9 +65,7 @@ class ServiceManager:
         Validate whether the service can be created.
         """
         if service_name not in self.factories:
-            raise ValueError(
-                f"No factory registered for the service class '{service_name.name}'"
-            )
+            raise ValueError(f"No factory registered for the service class '{service_name.name}'")
 
     def update(self, service_name: ServiceType):
         """
@@ -90,58 +84,16 @@ class ServiceManager:
             if service is None:
                 continue
             logger.debug(f"Teardown service {service.name}")
-            service.teardown()
+            try:
+                service.teardown()
+            except Exception as exc:
+                logger.exception(exc)
         self.services = {}
         self.factories = {}
         self.dependencies = {}
 
 
 service_manager = ServiceManager()
-
-
-def initialize_services():
-    """
-    Initialize all the services needed.
-    """
-    from langflow.services.database import factory as database_factory
-    from langflow.services.cache import factory as cache_factory
-    from langflow.services.chat import factory as chat_factory
-    from langflow.services.settings import factory as settings_factory
-    from langflow.services.session import factory as session_service_factory
-    from langflow.services.auth import factory as auth_factory
-    from langflow.services.task import factory as task_factory
-
-    service_manager.register_factory(settings_factory.SettingsServiceFactory())
-    service_manager.register_factory(
-        database_factory.DatabaseServiceFactory(),
-        dependencies=[ServiceType.SETTINGS_SERVICE],
-    )
-    service_manager.register_factory(
-        cache_factory.CacheServiceFactory(), dependencies=[ServiceType.SETTINGS_SERVICE]
-    )
-
-    service_manager.register_factory(
-        auth_factory.AuthServiceFactory(), dependencies=[ServiceType.SETTINGS_SERVICE]
-    )
-
-    service_manager.register_factory(chat_factory.ChatServiceFactory())
-    service_manager.register_factory(
-        session_service_factory.SessionServiceFactory(),
-        dependencies=[ServiceType.CACHE_SERVICE],
-    )
-    service_manager.register_factory(
-        task_factory.TaskServiceFactory(),
-    )
-
-    # Test cache connection
-    service_manager.get(ServiceType.CACHE_SERVICE)
-    # Test database connection
-    service_manager.get(ServiceType.DATABASE_SERVICE)
-
-    # Test cache connection
-    service_manager.get(ServiceType.CACHE_SERVICE)
-    # Test database connection
-    service_manager.get(ServiceType.DATABASE_SERVICE)
 
 
 def reinitialize_services():
@@ -181,23 +133,14 @@ def initialize_session_service():
     """
     Initialize the session manager.
     """
-    from langflow.services.session import factory as session_service_factory  # type: ignore
     from langflow.services.cache import factory as cache_factory
+    from langflow.services.session import factory as session_service_factory  # type: ignore
 
     initialize_settings_service()
 
-    service_manager.register_factory(
-        cache_factory.CacheServiceFactory(), dependencies=[ServiceType.SETTINGS_SERVICE]
-    )
+    service_manager.register_factory(cache_factory.CacheServiceFactory(), dependencies=[ServiceType.SETTINGS_SERVICE])
 
     service_manager.register_factory(
         session_service_factory.SessionServiceFactory(),
         dependencies=[ServiceType.CACHE_SERVICE],
     )
-
-
-def teardown_services():
-    """
-    Teardown all the services.
-    """
-    service_manager.teardown()
